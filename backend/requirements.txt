@@ -26,8 +26,9 @@ pyotp==2.9.0
 qrcode==7.4.2
 #Pillow==10.2.0
 
-# Blockchain (Tron)
+# Tron Network
 tronpy==0.4.0
+coincurve>=17.0.0
 
 # API & Validation
 pydantic>=2.7.0
