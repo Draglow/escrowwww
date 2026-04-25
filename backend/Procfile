@@ -1,0 +1,14 @@
+# Procfile for Render deployment
+# This file defines process types for the application
+
+# Web process - serves HTTP/WebSocket requests
+web: daphne -b 0.0.0.0 -p $PORT config.asgi:application
+
+# Worker process - handles background tasks
+worker: celery -A config worker -l info --concurrency=2
+
+# Beat process - handles scheduled tasks
+beat: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+# Release phase - runs migrations before deployment
+release: python manage.py migrate --noinput

@@ -1,0 +1,227 @@
+# Render Blueprint for Crypto Escrow Platform
+# This file defines all services needed to deploy the application on Render
+
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: escrow-postgres
+    env: docker
+    plan: starter
+    region: oregon
+    databases:
+      - name: escrow_db
+        databaseName: escrow_db
+        user: escrow_user
+
+  # Redis Instance
+  - type: redis
+    name: escrow-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  # Django Backend API
+  - type: web
+    name: escrow-backend
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      cd backend
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: |
+      cd backend
+      daphne -b 0.0.0.0 -p $PORT config.asgi:application
+    healthCheckPath: /api/v1/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: escrow-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: WALLET_ENCRYPTION_KEY
+        generateValue: true
+      - key: TRON_NETWORK
+        value: mainnet
+      - key: TRONGRID_API_KEY
+        sync: false
+      - key: TRON_FULL_NODE
+        value: https://api.trongrid.io
+      - key: TRON_SOLIDITY_NODE
+        value: https://api.trongrid.io
+      - key: TRON_EVENT_SERVER
+        value: https://api.trongrid.io
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: PLATFORM_FEE_PERCENTAGE
+        value: 2.5
+      - key: MIN_DEAL_AMOUNT
+        value: 10.00
+      - key: MAX_DEAL_AMOUNT
+        value: 100000.00
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: WEBAUTHN_RP_ID
+        sync: false
+      - key: WEBAUTHN_RP_NAME
+        value: Escrow Platform
+      - key: WEBAUTHN_ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  # Celery Worker (Background Tasks)
+  - type: worker
+    name: escrow-celery-worker
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      cd backend
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      celery -A config worker -l info
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: escrow-backend
+          envVarKey: SECRET_KEY
+      - key: DEBUG
+        value: False
+      - key: DATABASE_URL
+        fromDatabase:
+          name: escrow-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: WALLET_ENCRYPTION_KEY
+        fromService:
+          type: web
+          name: escrow-backend
+          envVarKey: WALLET_ENCRYPTION_KEY
+      - key: TRON_NETWORK
+        value: mainnet
+      - key: TRONGRID_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+
+  # Celery Beat (Scheduled Tasks)
+  - type: worker
+    name: escrow-celery-beat
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      cd backend
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: escrow-backend
+          envVarKey: SECRET_KEY
+      - key: DEBUG
+        value: False
+      - key: DATABASE_URL
+        fromDatabase:
+          name: escrow-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: escrow-redis
+          property: connectionString
+
+  # Next.js Frontend
+  - type: web
+    name: escrow-frontend
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    startCommand: |
+      cd frontend
+      npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_WS_URL
+        sync: false
+      - key: NEXT_PUBLIC_TELEGRAM_BOT_NAME
+        sync: false
+      - key: NEXT_PUBLIC_APP_NAME
+        value: CryptoEscrow
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: NEXT_PUBLIC_WEBAUTHN_RP_ID
+        sync: false
+      - key: NEXT_PUBLIC_ENABLE_ANALYTICS
+        value: false
+      - key: NEXT_PUBLIC_ENABLE_SENTRY
+        value: false

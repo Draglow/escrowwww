@@ -1,0 +1,57 @@
+# Windows-Friendly Requirements
+# Use this if you have issues with the main requirements.txt
+
+# Django Core
+Django==4.2.11
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-environ==0.11.2
+python-dotenv==1.0.1
+
+# Database
+psycopg2-binary==2.9.9
+dj-database-url==2.1.0
+
+# Async & WebSockets
+channels==4.0.0
+channels-redis==4.2.0
+daphne==4.1.0
+
+# Celery & Redis
+celery==5.3.6
+redis==5.0.1
+django-celery-beat==2.5.0
+
+# Cryptography & Security
+cryptography==42.0.5
+pycryptodome==3.20.0
+PyJWT==2.8.0
+pyotp==2.9.0
+qrcode==7.4.2
+
+# Pillow - Install separately if build fails:
+# pip install Pillow
+# If that fails, skip it (QR codes won't work but everything else will)
+Pillow==10.2.0
+
+# Blockchain (Tron)
+tronpy==0.4.0
+
+# API & Validation
+pydantic==2.6.4
+marshmallow==3.21.1
+requests==2.31.0
+
+# Production Server (optional for development)
+# gunicorn==21.2.0  # Not needed on Windows for development
+
+# Monitoring (optional)
+# sentry-sdk==1.40.6
+
+# Development
+django-extensions==3.2.3
+ipython==8.22.2
+
+# Windows-specific: If you get errors, install these first:
+# pip install wheel
+# pip install setuptools
