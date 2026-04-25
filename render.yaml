@@ -1,18 +1,15 @@
 # Render Blueprint for Crypto Escrow Platform
 # This file defines all services needed to deploy the application on Render
 
-services:
+databases:
   # PostgreSQL Database
-  - type: pserv
-    name: escrow-postgres
-    env: docker
+  - name: escrow-postgres
+    databaseName: escrow_db
+    user: escrow_user
     plan: starter
     region: oregon
-    databases:
-      - name: escrow_db
-        databaseName: escrow_db
-        user: escrow_user
 
+services:
   # Redis Instance
   - type: redis
     name: escrow-redis
@@ -24,18 +21,12 @@ services:
   # Django Backend API
   - type: web
     name: escrow-backend
-    env: python
+    runtime: python
     region: oregon
     plan: starter
-    buildCommand: |
-      cd backend
-      pip install --upgrade pip
-      pip install -r requirements.txt
-      python manage.py collectstatic --noinput
-      python manage.py migrate
-    startCommand: |
-      cd backend
-      daphne -b 0.0.0.0 -p $PORT config.asgi:application
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
     healthCheckPath: /api/v1/health/
     envVars:
       - key: PYTHON_VERSION
@@ -99,16 +90,12 @@ services:
   # Celery Worker (Background Tasks)
   - type: worker
     name: escrow-celery-worker
-    env: python
+    runtime: python
     region: oregon
     plan: starter
-    buildCommand: |
-      cd backend
-      pip install --upgrade pip
-      pip install -r requirements.txt
-    startCommand: |
-      cd backend
-      celery -A config worker -l info
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A config worker -l info
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -153,16 +140,12 @@ services:
   # Celery Beat (Scheduled Tasks)
   - type: worker
     name: escrow-celery-beat
-    env: python
+    runtime: python
     region: oregon
     plan: starter
-    buildCommand: |
-      cd backend
-      pip install --upgrade pip
-      pip install -r requirements.txt
-    startCommand: |
-      cd backend
-      celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -196,16 +179,12 @@ services:
   # Next.js Frontend
   - type: web
     name: escrow-frontend
-    env: node
+    runtime: node
     region: oregon
     plan: starter
-    buildCommand: |
-      cd frontend
-      npm install
-      npm run build
-    startCommand: |
-      cd frontend
-      npm start
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 18.17.0

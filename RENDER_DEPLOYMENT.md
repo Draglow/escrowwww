@@ -68,10 +68,12 @@ If you prefer to create services individually:
 #### 1. Create PostgreSQL Database
 
 ```
+Type: PostgreSQL
 Name: escrow-postgres
 Plan: Starter ($7/month)
 Database Name: escrow_db
 User: escrow_user
+Region: Oregon (or your preferred region)
 ```
 
 #### 2. Create Redis Instance
@@ -86,12 +88,15 @@ Maxmemory Policy: allkeys-lru
 
 ```
 Name: escrow-backend
-Environment: Python
+Runtime: Python
+Region: Oregon (or your preferred region)
+Root Directory: backend
+
 Build Command:
-  cd backend && pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+  pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
 
 Start Command:
-  cd backend && daphne -b 0.0.0.0 -p $PORT config.asgi:application
+  daphne -b 0.0.0.0 -p $PORT config.asgi:application
 
 Health Check Path: /api/v1/health/
 ```
@@ -128,12 +133,15 @@ FRONTEND_URL=https://escrow-frontend.onrender.com
 
 ```
 Name: escrow-celery-worker
-Environment: Python
+Runtime: Python
+Region: Oregon (or your preferred region)
+Root Directory: backend
+
 Build Command:
-  cd backend && pip install -r requirements.txt
+  pip install -r requirements.txt
 
 Start Command:
-  cd backend && celery -A config worker -l info
+  celery -A config worker -l info
 ```
 
 **Environment Variables**: Same as backend, plus:
@@ -146,24 +154,30 @@ TELEGRAM_BOT_TOKEN=your-bot-token
 
 ```
 Name: escrow-celery-beat
-Environment: Python
+Runtime: Python
+Region: Oregon (or your preferred region)
+Root Directory: backend
+
 Build Command:
-  cd backend && pip install -r requirements.txt
+  pip install -r requirements.txt
 
 Start Command:
-  cd backend && celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+  celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 ```
 
 #### 6. Create Frontend Web Service
 
 ```
 Name: escrow-frontend
-Environment: Node
+Runtime: Node
+Region: Oregon (or your preferred region)
+Root Directory: frontend
+
 Build Command:
-  cd frontend && npm install && npm run build
+  npm install && npm run build
 
 Start Command:
-  cd frontend && npm start
+  npm start
 ```
 
 **Environment Variables**:
@@ -186,7 +200,6 @@ NEXT_PUBLIC_ENABLE_SENTRY=false
 Connect to your backend shell:
 ```bash
 # In Render Dashboard → escrow-backend → Shell
-cd backend
 python manage.py createsuperuser
 ```
 
